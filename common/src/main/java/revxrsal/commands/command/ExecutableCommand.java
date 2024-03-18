@@ -163,4 +163,13 @@ public interface ExecutableCommand extends CommandAnnotationHolder, PermissionHo
      */
     boolean isSecret();
 
+    /**
+     * Returns whether is this command executed asynchronously or not.
+     * <p>
+     *     Specified by {@link revxrsal.commands.annotation.Async}
+     * </p>
+     * @return
+     */
+    boolean isAsynchronously();
+
 }

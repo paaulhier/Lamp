@@ -188,6 +188,7 @@ final class CommandParser {
                     executable.method = method;
                     executable.reader = reader;
                     executable.secret = reader.contains(SecretCommand.class);
+                    executable.asynchronously = reader.contains(Async.class);
                     executable.methodCaller = caller;
                     if (registerAsDefault)
                         executable.parent(categories.get(p), true);

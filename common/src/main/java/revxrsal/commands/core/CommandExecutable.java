@@ -39,11 +39,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static revxrsal.commands.util.Preconditions.notNull;
 
 class CommandExecutable implements ExecutableCommand {
-
+    private static final ExecutorService executorService = Executors.newCachedThreadPool();
+    
+    
     // lazily populated by CommandParser.
     CommandHandler handler;
     boolean permissionSet = false;
@@ -53,6 +57,7 @@ class CommandExecutable implements ExecutableCommand {
     Method method;
     AnnotationReader reader;
     boolean secret;
+    boolean asynchronously;
     BoundMethodCaller methodCaller;
     BaseCommandCategory parent;
     @SuppressWarnings("rawtypes")
@@ -122,7 +127,8 @@ class CommandExecutable implements ExecutableCommand {
         ArgumentStack arguments = ArgumentStack.copyExact(path.path);
         if (input != null)
             arguments.addAll(input);
-        getCommandHandler().dispatch(actor, arguments);
+
+        executeAsyncIfNecessary(actor, arguments);
     }
 
     @Override
@@ -131,12 +137,37 @@ class CommandExecutable implements ExecutableCommand {
         ArgumentStack arguments = ArgumentStack.copyExact(path.path);
         if (input != null)
             Collections.addAll(arguments, input);
-        getCommandHandler().dispatch(actor, arguments);
+        executeAsyncIfNecessary(
+                actor,
+                arguments
+        );
+    }
+
+    private void executeAsyncIfNecessary(@NotNull CommandActor actor, ArgumentStack arguments) {
+        if (isAsynchronously()) {
+            executorService.execute(dispatchCommand(
+                    actor,
+                    arguments
+            ));
+        } else {
+            dispatchCommand(
+                    actor,
+                    arguments
+            ).run();
+        }
+    }
+    
+    private Runnable dispatchCommand(CommandActor actor, ArgumentStack arguments) {
+        return () -> getCommandHandler().dispatch(actor, arguments);
     }
 
     @Override
     public boolean isSecret() {
         return secret;
+    }
+
+    @Override public boolean isAsynchronously() {
+        return asynchronously;
     }
 
     @Override
